@@ -64,7 +64,12 @@ jobs:
           DESCRIPTION: ${{ steps.info.outputs.description }}
           URL: ${{ steps.info.outputs.url }}
         run: |
+          # The info helper returns JSON-encoded strings ("..."); unquote them.
+          unquote() { local v="$1"; v="${v#\"}"; v="${v%\"}"; printf '%s' "$v"; }
+          IMAGE="$(unquote "$IMAGE")"; VERSION="$(unquote "$VERSION")"
+          NAME="$(unquote "$NAME")"; DESCRIPTION="$(unquote "$DESCRIPTION")"; URL="$(unquote "$URL")"
           {
+            echo "image=${IMAGE}"
             echo "image_name=${IMAGE##*/}"
             echo "registry_prefix=${IMAGE%/*}"
             echo "version=${VERSION}"
@@ -76,8 +81,8 @@ jobs:
       - name: Is this version already published?
         id: exists
         env:
-          IMAGE: ${{ steps.info.outputs.image }}
-          VERSION: ${{ steps.info.outputs.version }}
+          IMAGE: ${{ steps.normalize.outputs.image }}
+          VERSION: ${{ steps.normalize.outputs.version }}
         run: |
           if docker buildx imagetools inspect "${IMAGE}:${VERSION}" > /dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
