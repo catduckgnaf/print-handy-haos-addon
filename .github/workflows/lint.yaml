@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Shellcheck
-        run: shellcheck scripts/smoke.sh print_handy/rootfs/usr/local/bin/print-handy-app
+        run: shellcheck scripts/smoke.sh print_handy/rootfs/usr/local/bin/print-handy-app print_handy/rootfs/usr/local/bin/print-handy-app-health
 
       - name: Upstream tracker dry run
         env:

@@ -1,12 +1,21 @@
 #!/bin/sh
-# Docker HEALTHCHECK: run Print Handy's own health check as `handy`.
-exec python3 -c '
-import os, pwd, sys
-user = pwd.getpwnam("handy")
-os.setgroups(os.getgrouplist(user.pw_name, user.pw_gid))
-os.setgid(user.pw_gid)
-os.setuid(user.pw_uid)
-os.environ["HOME"] = "/data"
-os.environ["USER"] = user.pw_name
-os.execv(sys.executable, [sys.executable, "/usr/local/bin/print-handy-healthcheck"])
-'
+# Docker HEALTHCHECK for the app: liveness, not readiness.
+#
+# Healthy while Print Handy's web server answers /healthz with any HTTP
+# status. /healthz itself returns 503 until a chat bot is configured and
+# connected, which is normal on a fresh install; restarting the app for that
+# (the Supervisor watchdog acts on this check) would interrupt the setup
+# walkthrough. Readiness stays visible in the Web UI's doctor and in the
+# Home Assistant integration's Ready sensor.
+exec python3 - <<'PY'
+import os, sys, urllib.error, urllib.request
+
+port = os.environ.get("PRINT_HANDY__WEBUI__PORT") or "8088"
+try:
+    urllib.request.urlopen(f"http://127.0.0.1:{port}/healthz", timeout=8)
+except urllib.error.HTTPError:
+    pass  # answered: the server is alive, whatever its verdict
+except Exception as err:  # refused, reset or timed out
+    print(f"Print Handy Web UI not answering on port {port}: {err}")
+    sys.exit(1)
+PY

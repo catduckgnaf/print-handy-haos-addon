@@ -34,9 +34,12 @@ docker run -d --name "${NAME}" \
     -v "${WORK}/data:/data" -v "${WORK}/config:/config" \
     -e TZ=Etc/UTC -p 8088:8088 "${IMAGE}"
 
-echo "Waiting up to ${TIMEOUT}s for /healthz"
+# /healthz is the chat bot's health: 503 on a fresh install with no bot
+# configured, which is expected. Any HTTP answer means the server is up.
+web_status() { curl -s -o /dev/null -w '%{http_code}' --max-time 8 http://127.0.0.1:8088/healthz || true; }
+echo "Waiting up to ${TIMEOUT}s for the Web UI"
 deadline=$((SECONDS + TIMEOUT))
-until curl -fsS http://127.0.0.1:8088/healthz > /dev/null 2>&1; do
+until [[ "$(web_status)" =~ ^(200|503)$ ]]; do
     if ! docker inspect -f '{{.State.Running}}' "${NAME}" | grep -q true; then
         echo "::error::the container exited"; docker logs "${NAME}" || true; exit 1
     fi
@@ -45,9 +48,9 @@ until curl -fsS http://127.0.0.1:8088/healthz > /dev/null 2>&1; do
     fi
     sleep 5
 done
-echo "Web UI is up"
+echo "Web UI is up (/healthz answered $(web_status))"
 
-echo "Waiting for Docker to report the app healthy (its HEALTHCHECK runs as handy)"
+echo "Waiting for Docker to report the app healthy (liveness check)"
 until [ "$(docker inspect -f '{{.State.Health.Status}}' "${NAME}")" = healthy ]; do
     status="$(docker inspect -f '{{.State.Health.Status}}' "${NAME}")"
     if [ "${status}" = unhealthy ] || (( SECONDS > deadline + 120 )); then

@@ -20,9 +20,8 @@ RUN chmod 0755 /usr/local/bin/print-handy-app /usr/local/bin/print-handy-app-hea
 
 ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/usr/local/bin/print-handy-app"]
 CMD []
-# Print Handy's own health check, run as `handy` like the app itself (the
-# image's USER is root here, and the check must not create root-owned files
-# under /data). The Supervisor reads this to restart an unhealthy app.
+# Liveness only (see print-handy-app-health): the Supervisor watchdog acts
+# on this, and an unconfigured chat bot must not restart a fresh install.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 CMD ["/usr/local/bin/print-handy-app-health"]
 
 LABEL \
