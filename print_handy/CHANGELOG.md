@@ -1,0 +1,14 @@
+# Changelog
+
+Each app version runs the Print Handy release of the same number. Print
+Handy's own release notes say what changed in Print Handy itself. A fourth
+number (2.3.2.1) is a fix to the app packaging on the same Print Handy
+release.
+
+<!-- releases -->
+
+## 2.3.2
+
+- First release of the Home Assistant OS app.
+- Print Handy [2.3.2](https://github.com/catduckgnaf/print-handy/releases/tag/2.3.2): it prints what the designer drew
+- Image `ghcr.io/catduckgnaf/print-handy:2.3.2@sha256:2e34364549370cb502af3327f67a7ccbb388acd8126e02b4b14c8100b573387b`

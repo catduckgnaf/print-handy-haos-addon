@@ -1,0 +1,139 @@
+name: Upstream
+
+# Follow Print Handy releases with no manual step:
+#   1. check  - is there a newer Print Handy release with a published image?
+#               If so, write the bump on a branch (upstream/<version>).
+#   2. build  - build, smoke-test and publish the app image from that branch.
+#   3. promote - only after the image is live, fast-forward main to the bump
+#               and cut a GitHub release, so Home Assistant never offers an
+#               update whose image cannot be pulled yet.
+# Runs every 30 minutes; Print Handy's release workflow can also send a
+# `print-handy-release` repository_dispatch for an immediate run, and it can
+# be run by hand (optionally pinning a specific release).
+
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  repository_dispatch:
+    types: [print-handy-release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Pin this Print Handy release (empty = newest)
+        required: false
+        default: ""
+
+concurrency:
+  group: upstream
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check for a new Print Handy release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.bump.outputs.changed }}
+      version: ${{ steps.bump.outputs.version }}
+      branch: ${{ steps.push.outputs.branch }}
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+
+      - name: Pin the newest release
+        id: bump
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PIN: ${{ inputs.version }}
+        run: |
+          if [[ -n "${PIN}" ]]; then
+            python3 scripts/upstream.py --version "${PIN}"
+          else
+            python3 scripts/upstream.py
+          fi
+
+      - name: Push the bump to its own branch
+        id: push
+        if: steps.bump.outputs.changed == 'true'
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          branch="upstream/${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "${branch}"
+          git commit -am "Print Handy ${VERSION}"
+          git push --force origin "${branch}"
+          echo "branch=${branch}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build and publish
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    uses: ./.github/workflows/build-app.yaml
+    with:
+      app: print_handy
+      publish: true
+      ref: ${{ needs.check.outputs.branch }}
+    secrets: inherit
+
+  promote:
+    name: Promote to main
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fast-forward main to the published bump
+        env:
+          BRANCH: ${{ needs.check.outputs.branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "${BRANCH}"
+          # Main may have moved while the image built; replay the bump on top.
+          git checkout --detach "origin/${BRANCH}"
+          git rebase origin/main || {
+            echo "::error::The version bump no longer applies cleanly to main"; exit 1; }
+          git push origin "HEAD:main"
+          git push origin --delete "${BRANCH}"
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          gh release create "${VERSION}" --target main --title "Print Handy ${VERSION}" \
+            --notes "Runs [Print Handy ${VERSION}](https://github.com/catduckgnaf/print-handy/releases/tag/${VERSION}). Home Assistant offers the update in Settings > Apps." \
+            || echo "::warning::release ${VERSION} already exists"
+
+  cleanup:
+    name: Drop a bump that failed to publish
+    needs: [check, build]
+    if: failure() && needs.check.outputs.branch != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v7.0.1
+      - name: Delete the branch so the next run retries cleanly
+        env:
+          BRANCH: ${{ needs.check.outputs.branch }}
+        run: git push origin --delete "${BRANCH}" || true

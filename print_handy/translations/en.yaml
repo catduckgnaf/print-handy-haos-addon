@@ -1,0 +1,25 @@
+configuration:
+  webui_access_token:
+    name: Web UI access token
+    description: >-
+      Optional. Claims the Web UI before anyone else can reach it. API callers
+      (the Print Handy integration) send it as the token; browsers get a login
+      page. Leave empty to finish the Web UI's Login step yourself after the
+      first start.
+  spoolman_on_lan:
+    name: Serve the bundled Spoolman on the network
+    description: >-
+      Lets Moonraker on your printers reach the bundled Spoolman. Also set a
+      host port for 8000/tcp under Network. The Spoolman API has no login:
+      keep it on your LAN.
+  env_vars:
+    name: Extra environment variables
+    description: >-
+      Any Print Handy environment variable, one name and value per entry: chat
+      bot tokens (DISCORD_BOT_TOKEN, TELEGRAM_BOT_TOKEN), printer secrets
+      (BAMBU_LAN_PASSWORD, MOONRAKER_API_KEY) or a PRINT_HANDY__SECTION__KEY
+      setting override. Names containing TOKEN, KEY, PASSWORD, SECRET or CODE
+      are hidden in the log.
+network:
+  8088/tcp: Print Handy Web UI and API (the Home Assistant integration connects here)
+  8000/tcp: Bundled Spoolman API for Moonraker (off unless you set a host port)
