@@ -192,7 +192,7 @@ def main() -> int:
             raise UpstreamError(f"{release.get('tag_name')} is a draft or pre-release")
         version = str(release["tag_name"]).lstrip("v")
         newer = version_tuple(version) > version_tuple(pinned)
-        if not args.version and not newer:
+        if (not args.version and not newer) or version == pinned:
             print(f"Up to date: app {app_version} runs Print Handy {pinned}; latest is {version}")
             output(changed="false", version=app_version, previous=app_version)
             return 0
