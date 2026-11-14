@@ -20,7 +20,7 @@ Docker Compose, Unraid and a plain Linux install are covered in the [Print Handy
 
 ## How updates work
 
-There is nothing to do by hand. The **Upstream** workflow checks for a new Print Handy release every 30 minutes:
+There is nothing to do by hand. Publishing a Print Handy release sends this repository a `print-handy-release` dispatch, which starts the **Upstream** workflow within seconds. The same workflow also runs on a 30-minute schedule as a fallback; GitHub may run that late:
 
 1. It pins the release's tag and multi-arch image digest in `print_handy/Dockerfile` and the matching `version` in `print_handy/config.yaml`, on a branch.
 2. It builds the app image for `amd64` and `aarch64` with Home Assistant's builder actions. It smoke-tests the result the way the Supervisor runs it (root-owned `/data` and `/config`, an `options.json`, a `/healthz` check, Print Handy running unprivileged), then publishes `ghcr.io/catduckgnaf/print-handy-haos-addon:<version>`.

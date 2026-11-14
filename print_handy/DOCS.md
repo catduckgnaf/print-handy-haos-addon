@@ -41,7 +41,7 @@ Everything Print Handy keeps (state, print archive, records, the bundled Spoolma
 
 ## Updates
 
-Each app version runs the Print Handy release with the same number. When Print Handy publishes a release, this repository picks it up automatically within about half an hour, publishes the app image, and Home Assistant offers the update under **Settings > Apps**. Print Handy's release notes say what changed.
+Each app version runs the Print Handy release with the same number. When Print Handy publishes a release, this repository picks it up automatically, usually within minutes, publishes the app image, and Home Assistant offers the update under **Settings > Apps**. Print Handy's release notes say what changed.
 
 ## Network
 

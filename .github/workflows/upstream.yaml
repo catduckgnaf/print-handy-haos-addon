@@ -7,9 +7,11 @@ name: Upstream
 #   3. promote - only after the image is live, fast-forward main to the bump
 #               and cut a GitHub release, so Home Assistant never offers an
 #               update whose image cannot be pulled yet.
-# Runs every 30 minutes; Print Handy's release workflow can also send a
-# `print-handy-release` repository_dispatch for an immediate run, and it can
-# be run by hand (optionally pinning a specific release).
+# Print Handy's release workflow (post-release-surfaces) sends a
+# `print-handy-release` repository_dispatch when a release is published, for
+# an immediate run. The 30-minute schedule is the fallback (GitHub may defer
+# it by hours on a quiet repository), and it can be run by hand, optionally
+# pinning a specific release.
 
 on:
   schedule:
