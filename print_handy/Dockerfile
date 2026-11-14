@@ -13,11 +13,17 @@ FROM ghcr.io/catduckgnaf/print-handy:${PRINT_HANDY_VERSION}@${PRINT_HANDY_DIGEST
 # root only long enough to prepare those folders, then drops to `handy`
 # and hands over to Print Handy's own entrypoint and supervisor.
 USER root
+# The settings file lives in the app's config folder (see print-handy-app).
+ENV PRINT_HANDY_CONFIG=/config/print-handy.yaml HOME=/data
 COPY rootfs /
-RUN chmod 0755 /usr/local/bin/print-handy-app
+RUN chmod 0755 /usr/local/bin/print-handy-app /usr/local/bin/print-handy-app-health
 
 ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/usr/local/bin/print-handy-app"]
 CMD []
+# Print Handy's own health check, run as `handy` like the app itself (the
+# image's USER is root here, and the check must not create root-owned files
+# under /data). The Supervisor reads this to restart an unhealthy app.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 CMD ["/usr/local/bin/print-handy-app-health"]
 
 LABEL \
     io.hass.type="app" \

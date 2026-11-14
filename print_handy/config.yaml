@@ -17,10 +17,7 @@ arch:
   - amd64
 # The image brings its own init (tini); a second one only gets in the way.
 init: false
-startup: application
-boot: auto
 webui: "http://[HOST]:[PORT:8088]"
-watchdog: "http://[HOST]:[PORT:8088]/healthz"
 ports:
   8088/tcp: 8088
   8000/tcp: null

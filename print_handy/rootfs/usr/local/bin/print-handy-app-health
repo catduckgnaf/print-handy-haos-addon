@@ -1,0 +1,12 @@
+#!/bin/sh
+# Docker HEALTHCHECK: run Print Handy's own health check as `handy`.
+exec python3 -c '
+import os, pwd, sys
+user = pwd.getpwnam("handy")
+os.setgroups(os.getgrouplist(user.pw_name, user.pw_gid))
+os.setgid(user.pw_gid)
+os.setuid(user.pw_uid)
+os.environ["HOME"] = "/data"
+os.environ["USER"] = user.pw_name
+os.execv(sys.executable, [sys.executable, "/usr/local/bin/print-handy-healthcheck"])
+'

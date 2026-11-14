@@ -47,6 +47,18 @@ until curl -fsS http://127.0.0.1:8088/healthz > /dev/null 2>&1; do
 done
 echo "Web UI is up"
 
+echo "Waiting for Docker to report the app healthy (its HEALTHCHECK runs as handy)"
+until [ "$(docker inspect -f '{{.State.Health.Status}}' "${NAME}")" = healthy ]; do
+    status="$(docker inspect -f '{{.State.Health.Status}}' "${NAME}")"
+    if [ "${status}" = unhealthy ] || (( SECONDS > deadline + 120 )); then
+        echo "::error::health status ${status}"
+        docker inspect -f '{{json .State.Health}}' "${NAME}" || true
+        exit 1
+    fi
+    sleep 5
+done
+echo "Docker health: healthy"
+
 fail=0
 check() { if eval "$2"; then echo "ok: $1"; else echo "::error::$1"; fail=1; fi; }
 
