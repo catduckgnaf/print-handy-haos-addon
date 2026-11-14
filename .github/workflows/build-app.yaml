@@ -135,6 +135,10 @@ jobs:
         uses: home-assistant/builder/actions/build-image@2026.09.0
         with:
           arch: ${{ matrix.arch }}
+          # The image is the published Print Handy image plus a few small
+          # files: its layers come from GHCR on every build anyway, and
+          # exporting ~0.7 GB of them to the Actions cache crashes BuildKit.
+          cache-gha: "false"
           container-registry-password: ${{ secrets.GITHUB_TOKEN }}
           context: "./${{ inputs.app }}"
           image: ${{ matrix.image }}
