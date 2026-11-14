@@ -1,0 +1,39 @@
+name: Builder
+
+# Pull requests: build and smoke-test, push nothing.
+# Pushes to main: publish the app version in config.yaml if it is not
+# published yet (a hand-made packaging fix such as 2.3.2.1). Print Handy
+# releases are published by the Upstream workflow before its version bump
+# reaches main, so this run finds them already published and skips the push.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - "print_handy/**"
+      - "scripts/smoke.sh"
+      - ".github/workflows/builder.yaml"
+      - ".github/workflows/build-app.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: builder-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-app:
+    name: Build print_handy
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    uses: ./.github/workflows/build-app.yaml
+    with:
+      app: print_handy
+      publish: ${{ github.event_name != 'pull_request' }}
+    secrets: inherit

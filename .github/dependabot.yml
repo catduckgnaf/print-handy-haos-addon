@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # Workflow actions (checkout, Home Assistant builder, app linter).
+  # The Print Handy image itself is tracked by the Upstream workflow.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

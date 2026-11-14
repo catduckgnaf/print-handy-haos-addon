@@ -1,0 +1,88 @@
+#!/bin/bash
+# Print Handy as a Home Assistant OS app: prepare /data and /config as root,
+# map the app options to Print Handy's environment, then run Print Handy's
+# own entrypoint and supervisor as the unprivileged `handy` user.
+set -euo pipefail
+
+APP_USER=handy
+OPTIONS=/data/options.json
+CONFIG_DIR=/config
+CONFIG_FILE="${CONFIG_DIR}/print-handy.yaml"
+SEED_CONFIG=/app/config/docker.yaml
+
+log() { echo "[print-handy-app] $*"; }
+
+if [ "$(id -u)" != "0" ]; then
+    log "not started as root; running Print Handy without the app setup"
+    exec /app/docker/entrypoint.sh /usr/local/bin/print-handy-supervise "$@"
+fi
+
+# Folders the stock image creates under /data. The Supervisor's /data mount
+# hides them, so they are made again on the mounted volume.
+mkdir -p /data/state/state /data/state/logs /data/archive /data/records \
+    /data/cache /data/spoolman/config /data/spoolman/logs \
+    /data/spoolman/backups /data/.config "${CONFIG_DIR}"
+
+# The settings file the Web UI reads and writes. It lives in the app's
+# config folder so it is backed up and editable from Home Assistant (File
+# editor, Studio Code Server, Samba: addon_configs/<id>_print_handy/).
+# Seeded once from the image's Docker defaults; never overwritten.
+if [ ! -e "${CONFIG_FILE}" ]; then
+    cp "${SEED_CONFIG}" "${CONFIG_FILE}"
+    log "created ${CONFIG_FILE} from the image's Docker defaults"
+fi
+
+# Hand everything to `handy` except the Supervisor's own options file.
+# Only entries with the wrong owner are touched, so a large print archive
+# is not rewalked with chown on every start.
+find /data "${CONFIG_DIR}" -xdev \( ! -user "${APP_USER}" -o ! -group "${APP_USER}" \) \
+    ! -path "${OPTIONS}" -exec chown -h "${APP_USER}:${APP_USER}" {} +
+
+export PRINT_HANDY_CONFIG="${CONFIG_FILE}"
+export HOME=/data
+
+# App options -> environment. Read with the image's Python so no extra
+# tools are needed; values are passed through NUL-separated pairs so any
+# character in a token survives.
+if [ -s "${OPTIONS}" ]; then
+    while IFS= read -r -d '' name && IFS= read -r -d '' value; do
+        export "${name}=${value}"
+        case "${name}" in
+            *TOKEN*|*KEY*|*PASSWORD*|*SECRET*|*CODE*) log "set ${name} (hidden)" ;;
+            *) log "set ${name}=${value}" ;;
+        esac
+    done < <(python3 - "${OPTIONS}" <<'PY'
+import json, re, sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    options = json.load(handle)
+
+pairs = []
+token = options.get("webui_access_token") or ""
+if token:
+    pairs.append(("WEBUI_ACCESS_TOKEN", token))
+if options.get("spoolman_on_lan"):
+    pairs.append(("SPOOLMAN_HOST", "0.0.0.0"))
+for row in options.get("env_vars") or []:
+    name = str(row.get("name") or "")
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+        pairs.append((name, str(row.get("value") or "")))
+for name, value in pairs:
+    sys.stdout.write(f"{name}\0{value}\0")
+PY
+)
+fi
+
+log "starting Print Handy as ${APP_USER} (config ${PRINT_HANDY_CONFIG})"
+# -c rather than a heredoc, so Print Handy keeps the container's stdin.
+DROP_PRIVILEGES='
+import os, pwd, sys
+user = pwd.getpwnam(sys.argv[1])
+os.setgroups(os.getgrouplist(user.pw_name, user.pw_gid))
+os.setgid(user.pw_gid)
+os.setuid(user.pw_uid)
+os.environ["USER"] = user.pw_name
+os.execv(sys.argv[2], sys.argv[2:])
+'
+exec python3 -c "${DROP_PRIVILEGES}" "${APP_USER}" \
+    /app/docker/entrypoint.sh /usr/local/bin/print-handy-supervise "$@"

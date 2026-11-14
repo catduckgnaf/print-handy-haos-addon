@@ -1,0 +1,40 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 4 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: Home Assistant app lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Run the app linter
+        uses: frenck/action-addon-linter@v2.21
+        with:
+          path: "./print_handy"
+
+  scripts:
+    name: Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Shellcheck
+        run: shellcheck scripts/smoke.sh print_handy/rootfs/usr/local/bin/print-handy-app
+
+      - name: Upstream tracker dry run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/upstream.py --check

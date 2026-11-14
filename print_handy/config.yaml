@@ -1,0 +1,45 @@
+# https://contributors.home-assistant.io/apps/reference/configuration/
+#
+# `version` mirrors the Print Handy release this app runs and is the image
+# tag the Supervisor pulls. The upstream workflow bumps it, and only after
+# the matching image has been published. A wrapper-only fix on the same
+# Print Handy release appends a fourth number (2.3.2 -> 2.3.2.1).
+name: Print Handy
+version: "2.3.2"
+slug: print_handy
+description: >-
+  Bambu Handy for every printer: drop a model link in chat, approve it, and
+  Print Handy slices, prints and watches it
+url: "https://github.com/catduckgnaf/print-handy-haos-addon/tree/main/print_handy"
+image: "ghcr.io/catduckgnaf/print-handy-haos-addon"
+arch:
+  - aarch64
+  - amd64
+# The image brings its own init (tini); a second one only gets in the way.
+init: false
+startup: application
+boot: auto
+webui: "http://[HOST]:[PORT:8088]"
+watchdog: "http://[HOST]:[PORT:8088]/healthz"
+ports:
+  8088/tcp: 8088
+  8000/tcp: null
+ports_description:
+  8088/tcp: Print Handy Web UI and API (the Home Assistant integration connects here)
+  8000/tcp: Bundled Spoolman API for Moonraker (off unless you set a host port)
+map:
+  - type: addon_config
+    read_only: false
+backup_exclude:
+  - cache/*
+  - "*.log"
+options:
+  webui_access_token: ""
+  spoolman_on_lan: false
+  env_vars: []
+schema:
+  webui_access_token: password?
+  spoolman_on_lan: bool
+  env_vars:
+    - name: match(^[A-Za-z_][A-Za-z0-9_]*$)
+      value: str
