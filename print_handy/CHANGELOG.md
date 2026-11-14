@@ -7,6 +7,11 @@ release.
 
 <!-- releases -->
 
+## 2.3.3
+
+- Print Handy [2.3.3](https://github.com/catduckgnaf/print-handy/releases/tag/2.3.3): just @ it
+- Image `ghcr.io/catduckgnaf/print-handy:2.3.3@sha256:e3450a63f50611a318b9954f92425bc176aec2f81771efb064547e024d4517c8`
+
 ## 2.3.2
 
 - First release of the Home Assistant OS app.
