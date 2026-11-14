@@ -24,7 +24,7 @@ docker build --pull -t "${IMAGE}" "${APP_DIR}"
 mkdir -p "${WORK}/data" "${WORK}/config"
 cat > "${WORK}/data/options.json" <<'JSON'
 {
-  "webui_access_token": "",
+  "webui_access_token": "smoke-test-token",
   "spoolman_on_lan": false,
   "env_vars": [{"name": "PRINT_HANDY_SMOKE_MARKER", "value": "from-options"}]
 }
@@ -80,7 +80,7 @@ options_root() { [ "$(owner "${WORK}/data/options.json")" = 0 ]; }
 # The supervisor and the Web UI run as handy; nothing of Print Handy runs
 # as root (only tini and the entry script's exec chain start there).
 print_handy_uids() {
-    docker top "${NAME}" -eo uid,args | awk '/print-handy-supervise|print_handy\.webui/ {print $1}' | sort -u
+    docker top "${NAME}" -eo uid,pid,args | awk '/print-handy-supervise|print_handy\.webui/ {print $1}' | sort -u
 }
 not_root() {
     local uids
@@ -88,28 +88,23 @@ not_root() {
     [ -n "${uids}" ] && [ "${uids}" = "${handy_uid}" ]
 }
 
-# Root in the container cannot read other users' /proc environ without
-# ptrace, so read handy's processes as handy.
-options_in_env() {
-    # shellcheck disable=SC2016  # expanded by the container's shell
-    docker exec -u handy "${NAME}" sh -c \
-        'for e in /proc/[0-9]*/environ; do tr "\000" "\n" < "$e" 2>/dev/null; done' \
-        | grep -qx 'PRINT_HANDY_SMOKE_MARKER=from-options'
+# The app's Web UI access token option must reach Print Handy as
+# WEBUI_ACCESS_TOKEN: the API then refuses a request without it and serves
+# one that sends it. This proves the options-to-environment mapping by its
+# effect, through the privilege drop and Print Handy's own entrypoint.
+api_code() {
+    curl -s -o /dev/null -w '%{http_code}' --max-time 90 "$@" http://127.0.0.1:8088/api/status || true
 }
-
-api_answers() {
-    local code
-    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 http://127.0.0.1:8088/api/status || true)"
-    [[ "${code}" =~ ^(200|401)$ ]]
-}
+token_required() { [ "$(api_code)" = 401 ]; }
+token_accepted() { [ "$(api_code -H 'X-WebUI-Token: smoke-test-token')" = 200 ]; }
 
 check "settings file seeded into /config" seeded
 check "/config/print-handy.yaml owned by handy" config_owned
 check "/data/state owned by handy" state_owned
 check "options.json left to root" options_root
 check "Print Handy runs as handy, not root" not_root
-check "app options reach the environment" options_in_env
-check "the API answers" api_answers
+check "API refuses a request without the app's access token" token_required
+check "API serves a request with the app's access token" token_accepted
 
 docker top "${NAME}" -eo user,uid,pid,args | head -20
 exit "${fail}"
