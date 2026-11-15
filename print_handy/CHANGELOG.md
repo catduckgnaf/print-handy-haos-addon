@@ -7,6 +7,11 @@ release.
 
 <!-- releases -->
 
+## 2.3.4
+
+- Print Handy [2.3.4](https://github.com/catduckgnaf/print-handy/releases/tag/2.3.4): the Web UI grows up
+- Image `ghcr.io/catduckgnaf/print-handy:2.3.4@sha256:f8f943b627bd665654debf015e1bd15905c6267cd21b8c19e9ab9ab325a920f2`
+
 ## 2.3.3
 
 - Print Handy [2.3.3](https://github.com/catduckgnaf/print-handy/releases/tag/2.3.3): just @ it
