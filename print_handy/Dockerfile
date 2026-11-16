@@ -4,8 +4,8 @@
 # The upstream workflow (scripts/upstream.py) rewrites the two lines below
 # when Print Handy publishes a release: the version tag and the digest of
 # its multi-arch index, so every build of one app version is the same image.
-ARG PRINT_HANDY_VERSION=2.3.4
-ARG PRINT_HANDY_DIGEST=sha256:f8f943b627bd665654debf015e1bd15905c6267cd21b8c19e9ab9ab325a920f2
+ARG PRINT_HANDY_VERSION=2.3.5
+ARG PRINT_HANDY_DIGEST=sha256:904da6919466b2e646e14f4aae8052425522dfbbaafce52ff9be17c123236f3f
 FROM ghcr.io/catduckgnaf/print-handy:${PRINT_HANDY_VERSION}@${PRINT_HANDY_DIGEST}
 
 # The Supervisor mounts /data and /config owned by root, and the upstream
