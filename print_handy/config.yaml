@@ -5,7 +5,7 @@
 # the matching image has been published. A wrapper-only fix on the same
 # Print Handy release appends a fourth number (2.3.2 -> 2.3.2.1).
 name: Print Handy
-version: "2.3.5"
+version: "2.3.6"
 slug: print_handy
 description: >-
   Bambu Handy for every printer: drop a model link in chat, approve it, and
