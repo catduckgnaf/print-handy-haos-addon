@@ -7,6 +7,11 @@ release.
 
 <!-- releases -->
 
+## 2.3.7
+
+- Print Handy [2.3.7](https://github.com/catduckgnaf/print-handy/releases/tag/2.3.7): Print Handy 2.3.7
+- Image `ghcr.io/catduckgnaf/print-handy:2.3.7@sha256:e12a607064f200cb4f40c0c8a63f7cfcdb26f7864d1cc7f54569cffdb76051c9`
+
 ## 2.3.6
 
 - Print Handy [2.3.6](https://github.com/catduckgnaf/print-handy/releases/tag/2.3.6): Print Handy 2.3.6
